@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; padding: 15px; }
+    .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    input { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background: #25D366; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #invoice-template { 
+      padding: 20px; background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+      border: 1px solid #ddd; width: 300px; display: none; color: #333;
+    }
+    .status-lunas { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div id="form-input" class="card">
+    <h3>Input Invoice Baru</h3>
+    <input type="text" id="nama" placeholder="Nama Tamu">
+    <input type="tel" id="hp" placeholder="Nomor HP">
+    <input type="date" id="checkin">
+    <input type="date" id="checkout">
+    <input type="number" id="total" placeholder="Total Harga">
+    <input type="number" id="dp" placeholder="Nilai DP">
+    <button onclick="simpan()">Simpan & Buat Gambar</button>
+  </div>
+
+  <div id="list-data" class="card">
+    <h3>Data Invoice</h3>
+    <button style="background:#333" onclick="loadData()">Refresh Data</button>
+    <div id="tabel-container"></div>
+  </div>
+
+  <div id="invoice-template">
+    <h2 style="border-bottom: 2px solid #333">INVOICE VILLA</h2>
+    <p>Nama: <span id="out-nama"></span></p>
+    <p>Check-in: <span id="out-in"></span></p>
+    <p>Check-out: <span id="out-out"></span></p>
+    <hr>
+    <p>Total: Rp <span id="out-total"></span></p>
+    <p>DP: Rp <span id="out-dp"></span></p>
+    <p class="status-lunas">Sisa Pelunasan: Rp <span id="out-lunas"></span></p>
+  </div>
+
+  <script>
+    function simpan() {
+      const data = {
+        nama: document.getElementById('nama').value,
+        hp: document.getElementById('hp').value,
+        checkin: document.getElementById('checkin').value,
+        checkout: document.getElementById('checkout').value,
+        total: document.getElementById('total').value,
+        dp: document.getElementById('dp').value,
+        lunas: document.getElementById('total').value - document.getElementById('dp').value
+      };
+
+      // Tampilkan template untuk digambar
+      document.getElementById('invoice-template').style.display = 'block';
+      document.getElementById('out-nama').innerText = data.nama;
+      document.getElementById('out-in').innerText = data.checkin;
+      document.getElementById('out-out').innerText = data.checkout;
+      document.getElementById('out-total').innerText = Number(data.total).toLocaleString();
+      document.getElementById('out-dp').innerText = Number(data.dp).toLocaleString();
+      document.getElementById('out-lunas').innerText = Number(data.lunas).toLocaleString();
+
+      // Convert ke Gambar
+      html2canvas(document.getElementById('invoice-template')).then(canvas => {
+        canvas.toBlob(blob => {
+          const item = new ClipboardItem({ "image/png": blob });
+          navigator.clipboard.write([item]);
+          alert("Data tersimpan & Gambar Invoice sudah di-COPY! Silakan paste ke WA.");
+        });
+        document.getElementById('invoice-template').style.display = 'none';
+      });
+
+      google.script.run.tambahData(data);
+    }
+
+    function loadData() {
+      google.script.run.withSuccessHandler(data => {
+        let html = '<table border="1" style="width:100%; margin-top:10px; font-size:12px;">';
+        data.forEach((row, i) => {
+          if(i==0) return; // Skip header
+          html += `<tr><td>${row[1]}</td><td>${row[3]}</td><td>${row[7]}</td></tr>`;
+        });
+        html += '</table>';
+        document.getElementById('tabel-container').innerHTML = html;
+      }).ambilData();
+    }
+  </script>
+</body>
+</html>
